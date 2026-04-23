@@ -21,6 +21,24 @@ st.subheader("Day-Ahead Electricity Price Prediction — DE-LU Market")
 # User Input
 date = st.date_input("Select a date to predict")
 
+
+st.markdown("""
+    <style>
+    div.stButton > button {
+        background-color: #2ecc71;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 24px;
+        font-size: 16px;
+    }
+    div.stButton > button:hover {
+        background-color: #27ae60;
+        color: white;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 # Call API
 if st.button("Predict"):
     with st.spinner("Fetching prediction..."):
