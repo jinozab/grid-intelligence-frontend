@@ -7,10 +7,13 @@ import streamlit as st
 # API URL
 if 'API_URI' in os.environ:
     BASE_URI = st.secrets[os.environ.get('API_URI')]
+elif 'cloud_api_uri' in st.secrets:
+    BASE_URI = st.secrets['cloud_api_uri']
 else:
-    BASE_URI = st.secrets['local_api_uri']
-BASE_URI = BASE_URI if BASE_URI.endswith('/') else BASE_URI + '/'
-url = BASE_URI + 'predict'
+    BASE_URI = 'http://localhost:8000'
+
+url = BASE_URI + '/predict'
+
 
 # Page config
 st.set_page_config(page_title="Grid Intelligence", page_icon="⚡", layout="wide")
