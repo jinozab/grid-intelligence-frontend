@@ -76,7 +76,8 @@ with col_chart:
             predictions = data["predictions_15min"]
             timestamps = (pd.to_datetime(data["timestamps"], utc=True))
 
-            df = pd.DataFrame({"timestamp": timestamps, "price": predictions})
+            timestamps_berlin = timestamps.tz_convert('Europe/Berlin')
+            df = pd.DataFrame({"timestamp": timestamps_berlin, "price": predictions})
             fig = go.Figure()
 
 
@@ -116,8 +117,16 @@ with col_chart:
             st.plotly_chart(fig, use_container_width=True)
 
             col1, col2, col3, col4 = st.columns(4)
-            col1.metric("Min Price",  f"{min(predictions):.2f} EUR/MWh")
-            col2.metric("Max Price",  f"{max(predictions):.2f} EUR/MWh")
+            min_idx = predictions.index(min(predictions))
+            min_ts = timestamps_berlin[min_idx].strftime("%a %d %b %H:%M")
+            col1.metric("Min Price", f"{min(predictions):.2f} EUR/MWh", delta=min_ts, delta_color="off")
+
+            #col2.metric("Max Price",  f"{max(predictions):.2f} EUR/MWh")
+            max_idx = predictions.index(max(predictions))
+            max_ts = timestamps_berlin[max_idx].strftime("%a %d %a %H:%M")
+            col2.metric("Max Price", f"{max(predictions):.2f} EUR/MWh", delta=max_ts, delta_color="off")
+
+
             col3.metric("Avg Price",  f"{sum(predictions)/len(predictions):.2f} EUR/MWh")
             spike_hours = sum(1 for p in predictions if p > threshold) // 4
             col4.metric("Spike Hours", f"{spike_hours}h")
@@ -129,7 +138,8 @@ with col_chart:
             predicted = data["predicted"]
             timestamps = pd.to_datetime(data["timestamps"], utc=True)
 
-            df_bt = pd.DataFrame({"timestamp": timestamps, "actual": actual, "predicted": predicted})
+            timestamps_berlin = timestamps.tz_convert('Europe/Berlin')
+            df_bt = pd.DataFrame({"timestamp": timestamps_berlin, "actual": actual, "predicted": predicted})
 
             fig_bt = go.Figure()
             fig_bt.add_trace(go.Scatter(x=df_bt["timestamp"], y=df_bt["actual"],
