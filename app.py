@@ -7,8 +7,8 @@ import streamlit as st
 # API URL
 if 'API_URI' in os.environ:
     BASE_URI = st.secrets[os.environ.get('API_URI')]
-elif 'local_api_uri' in st.secrets:
-    BASE_URI = st.secrets['local_api_uri']
+elif 'cloud_api_uri' in st.secrets:
+    BASE_URI = st.secrets['cloud_api_uri']
 else:
     BASE_URI = 'http://localhost:8000'
 
@@ -123,7 +123,7 @@ with col_chart:
 
             #col2.metric("Max Price",  f"{max(predictions):.2f} EUR/MWh")
             max_idx = predictions.index(max(predictions))
-            max_ts = timestamps_berlin[max_idx].strftime("%a %d %a %H:%M")
+            max_ts = timestamps_berlin[max_idx].strftime("%a %d %b %H:%M")
             col2.metric("Max Price", f"{max(predictions):.2f} EUR/MWh", delta=max_ts, delta_color="off")
 
 
