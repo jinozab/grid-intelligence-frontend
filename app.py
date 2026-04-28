@@ -7,19 +7,13 @@ import streamlit as st
 # API URL
 if 'API_URI' in os.environ:
     BASE_URI = st.secrets[os.environ.get('API_URI')]
-elif 'cloud_api_uri' in st.secrets:
-    BASE_URI = st.secrets['cloud_api_uri']
+elif 'local_api_uri' in st.secrets:
+    BASE_URI = st.secrets['local_api_uri']
 else:
     BASE_URI = 'http://localhost:8000'
 
-url = BASE_URI + '/predict'
-
-
-# Page config
 st.set_page_config(page_title="Grid Intelligence", page_icon="⚡", layout="wide")
-
-# Title
-st.title("⚡ Grid Intelligence")
+st.title("⚡ Grid Intelligence V2")
 st.subheader("Day-Ahead Electricity Price Prediction — DE-LU Market")
 
 st.markdown("""
@@ -39,101 +33,123 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-if st.button("Predict next 72 hours"):
+# ── Session state init ─────────────────────────────────────────────────────────
+if "prediction_data" not in st.session_state:
+    st.session_state.prediction_data = None
+if "backtest_data" not in st.session_state:
+    st.session_state.backtest_data = None
+if "backtest_days" not in st.session_state:
+    st.session_state.backtest_days = 7
+
+col_chart, col_controls = st.columns([3, 1])
+
+with col_controls:
+    view = st.selectbox("Select view", options=["Predict next 72 hours", "Backtest"], index=0)
+
+    if view == "Backtest":
+        days = st.selectbox("Days to backtest", options=[1, 3, 7, 14], index=1)
+        # Re-fetch if days changed
+        if days != st.session_state.backtest_days:
+            st.session_state.backtest_days = days
+            st.session_state.backtest_data = None
+
+# ── Auto-fetch prediction on first load ───────────────────────────────────────
+if view == "Predict next 72 hours" and st.session_state.prediction_data is None:
     with st.spinner("Fetching prediction..."):
-        response = requests.get(url)
+        response = requests.get(BASE_URI + '/predict')
+        if response.status_code == 200:
+            st.session_state.prediction_data = response.json()
 
-    if response.status_code == 200:
-        data = response.json()
-        predictions = data["predictions_15min"]
-        timestamps = pd.to_datetime(data["timestamps"])
+# ── Auto-fetch backtest when selected ─────────────────────────────────────────
+if view == "Backtest" and st.session_state.backtest_data is None:
+    with st.spinner("Loading backtest..."):
+        response = requests.get(BASE_URI + f'/backtest?days={st.session_state.backtest_days}')
+        if response.status_code == 200:
+            st.session_state.backtest_data = response.json()
 
-        df = pd.DataFrame({
-            "timestamp": timestamps,
-            "price": predictions
-        })
+# ── Render charts ──────────────────────────────────────────────────────────────
+with col_chart:
 
-        fig = go.Figure()
+    if view == "Predict next 72 hours":
+        data = st.session_state.prediction_data
+        if data:
+            predictions = data["predictions_15min"]
+            timestamps = (pd.to_datetime(data["timestamps"], utc=True))
 
-        # ── Night shading (22:00 - 06:00) ────────────────────────────────────
-        for ts in pd.date_range(df["timestamp"].min().floor("D"),
-                                df["timestamp"].max().ceil("D"), freq="D"):
-            night_start = pd.Timestamp(f"{ts.date()} 22:00:00")
-            night_end   = pd.Timestamp(f"{ts.date()} 06:00:00") + pd.Timedelta(days=1)
-            fig.add_vrect(
-                x0=night_start, x1=min(night_end, df["timestamp"].max()),
-                fillcolor="rgba(100,100,100,0.15)", line_width=0,
-                annotation_text="Night", annotation_position="top left",
-                annotation_font_size=10, annotation_font_color="gray"
+            df = pd.DataFrame({"timestamp": timestamps, "price": predictions})
+            fig = go.Figure()
+
+
+            threshold = 140
+            fig.add_hline(
+                y=threshold, line_dash="dash", line_color="red", line_width=1,
+                annotation_text=f"Spike threshold ({threshold} EUR/MWh)",
+                annotation_position="top right", annotation_font_color="red"
             )
 
-        # ── Peak hour shading (07:00-09:00 and 17:00-20:00) ──────────────────
-        for ts in pd.date_range(df["timestamp"].min().floor("D"),
-                                df["timestamp"].max().ceil("D"), freq="D"):
-            for h_start, h_end, label in [("07:00", "09:00", "Morning Peak"),
-                                           ("17:00", "20:00", "Evening Peak")]:
-                fig.add_vrect(
-                    x0=pd.Timestamp(f"{ts.date()} {h_start}"),
-                    x1=pd.Timestamp(f"{ts.date()} {h_end}"),
-                    fillcolor="rgba(255,165,0,0.1)", line_width=0,
-                    annotation_text=label, annotation_position="top left",
-                    annotation_font_size=9, annotation_font_color="orange"
+            for ts in pd.date_range(df["timestamp"].min().floor("D") + pd.Timedelta(days=1), df["timestamp"].max().ceil("D"), freq="D"):
+                fig.add_vline(
+                    x=ts.timestamp() * 1000,
+                    line_dash="dot", line_color="rgba(255,255,255,0.3)", line_width=1,
+                    annotation_text=ts.strftime("%a %d %b"),
+                    annotation_position="top",
+                    annotation_font_size=11, annotation_font_color="white"
                 )
 
-        # ── Spike threshold line (150 EUR/MWh) ───────────────────────────────
-        threshold = 135
-        fig.add_hline(
+            fig.add_trace(go.Scatter(
+                x=df["timestamp"], y=df["price"],
+                mode="lines", name="Predicted Price",
+                line=dict(color="#00d4aa", width=2),
+                hovertemplate="<b>%{x|%a %d %b %H:%M}</b><br>Price: %{y:.1f} EUR/MWh<extra></extra>"
+            ))
 
-            # only one parameter
-            y=threshold, line_dash="dash", line_color="red", line_width=1,
-            annotation_text=f"Spike threshold ({threshold} EUR/MWh)",
-            annotation_position="top right",
-            annotation_font_color="red"
-        )
-
-        # ── Midnight vertical lines ───────────────────────────────────────────
-        for ts in pd.date_range(df["timestamp"].min().floor("D") + pd.Timedelta(days=1),
-                                df["timestamp"].max().ceil("D"), freq="D"):
-            fig.add_vline(
-                x=ts.timestamp() * 1000,
-                line_dash="dot", line_color="rgba(255,255,255,0.3)", line_width=1,
-                annotation_text=ts.strftime("%a %d %b"),
-                annotation_position="top",
-                annotation_font_size=11,
-                annotation_font_color="white"
+            fig.update_layout(
+                template="plotly_dark", height=500,
+                xaxis_title="Time", yaxis_title="EUR/MWh",
+                showlegend=False, hovermode="x unified",
+                margin=dict(l=40, r=40, t=40, b=40),
+                yaxis=dict(gridcolor="rgba(255,255,255,0.1)", range=[-100, 300]),
+                xaxis=dict(gridcolor="rgba(255,255,255,0.1)",
+                           range=[df["timestamp"].min(), df["timestamp"].min() + pd.Timedelta(hours=72)])
             )
 
-        # ── Price line (color: green→yellow→red) ─────────────────────────────
-        fig.add_trace(go.Scatter(
-            x=df["timestamp"],
-            y=df["price"],
-            mode="lines",
-            name="Predicted Price",
-            line=dict(color="#00d4aa", width=2),
-            hovertemplate="<b>%{x|%a %d %b %H:%M}</b><br>Price: %{y:.1f} EUR/MWh<extra></extra>"
-        ))
+            st.plotly_chart(fig, use_container_width=True)
 
-        fig.update_layout(
-            template="plotly_dark",
-            height=500,
-            xaxis_title="Time",
-            yaxis_title="EUR/MWh",
-            showlegend=False,
-            hovermode="x unified",
-            margin=dict(l=40, r=40, t=40, b=40),
-            yaxis=dict(gridcolor="rgba(255,255,255,0.1)"),
-            xaxis=dict(gridcolor="rgba(255,255,255,0.1)")
-        )
+            col1, col2, col3, col4 = st.columns(4)
+            col1.metric("Min Price",  f"{min(predictions):.2f} EUR/MWh")
+            col2.metric("Max Price",  f"{max(predictions):.2f} EUR/MWh")
+            col3.metric("Avg Price",  f"{sum(predictions)/len(predictions):.2f} EUR/MWh")
+            spike_hours = sum(1 for p in predictions if p > threshold) // 4
+            col4.metric("Spike Hours", f"{spike_hours}h")
 
-        st.plotly_chart(fig, use_container_width=True)
+    elif view == "Backtest":
+        data = st.session_state.backtest_data
+        if data:
+            actual    = data["actual"]
+            predicted = data["predicted"]
+            timestamps = pd.to_datetime(data["timestamps"], utc=True)
 
-        # ── Metrics ───────────────────────────────────────────────────────────
-        col1, col2, col3, col4 = st.columns(4)
-        col1.metric("Min Price",  f"{min(predictions):.2f} EUR/MWh")
-        col2.metric("Max Price",  f"{max(predictions):.2f} EUR/MWh")
-        col3.metric("Avg Price",  f"{sum(predictions)/len(predictions):.2f} EUR/MWh")
-        spike_hours = sum(1 for p in predictions if p > 150) // 4
-        col4.metric("Spike Hours", f"{spike_hours}h")
+            df_bt = pd.DataFrame({"timestamp": timestamps, "actual": actual, "predicted": predicted})
 
-    else:
-        st.error(f"API Error: {response.status_code}")
+            fig_bt = go.Figure()
+            fig_bt.add_trace(go.Scatter(x=df_bt["timestamp"], y=df_bt["actual"],
+                mode="lines", name="Actual", line=dict(color="#378ADD", width=2)))
+            fig_bt.add_trace(go.Scatter(x=df_bt["timestamp"], y=df_bt["predicted"],
+                mode="lines", name="Predicted", line=dict(color="#00d4aa", width=2, dash="dash")))
+
+            fig_bt.update_layout(
+                template="plotly_dark", height=500,
+                xaxis_title="Time", yaxis_title="EUR/MWh",
+                hovermode="x unified",
+                margin=dict(l=40, r=40, t=40, b=40),
+                yaxis=dict(gridcolor="rgba(255,255,255,0.1)", range=[-500, 350]),
+                xaxis=dict(gridcolor="rgba(255,255,255,0.1)"),
+                legend=dict(orientation="h", yanchor="bottom", y=1.02)
+            )
+
+            st.plotly_chart(fig_bt, use_container_width=True)
+
+            mae = sum(abs(a - p) for a, p in zip(actual, predicted)) / len(actual)
+            col1, col2 = st.columns(2)
+            col1.metric("MAE", f"{mae:.2f} EUR/MWh")
+            col2.metric("Rows", len(actual))
