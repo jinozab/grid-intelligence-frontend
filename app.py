@@ -525,22 +525,50 @@ if view == "Predict next 72 hours":
                 <div class="metric-value">{avg_val:.1f} <span class="metric-unit">€/MWh</span></div>
                 <div class="metric-sub">72h window</div></div>""", unsafe_allow_html=True)
         with m4:
-            if avg_shap < -5:
-                icon_outlook = """<svg class="metric-icon" viewBox="0 0 24 24" fill="none" stroke="#00C49A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>"""
-            elif avg_shap > 5:
-                icon_outlook = """<svg class="metric-icon" viewBox="0 0 24 24" fill="none" stroke="#E84545" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>"""
+            if avg_val < 100:
+                dot_color = "#00C49A"
+                action_text = "Charge Now"
+                action_sub = f"Avg {avg_val:.0f} €/MWh · cheap window"
+                card_class = ""
+            elif avg_val <= 200:
+                dot_color = "#F59E0B"
+                action_text = "Neutral · Monitor"
+                action_sub = f"Avg {avg_val:.0f} €/MWh · normal range"
+                card_class = "warning"
             else:
-                icon_outlook = """<svg class="metric-icon" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="22" y1="12" x2="2" y2="12"/></svg>"""
+                dot_color = "#E84545"
+                action_text = "Reduce Load"
+                action_sub = f"Avg {avg_val:.0f} €/MWh · high risk"
+                card_class = "danger"
 
-            st.markdown(f"""<div class="metric-card {'warning' if spike_hours > 0 else 'neutral'}">{icon_outlook}
+            st.markdown(f"""
+            <style>
+            @keyframes outlook-pulse {{
+                0%, 100% {{ box-shadow: 0 0 0 0 {dot_color}66; transform: scale(1); }}
+                50% {{ box-shadow: 0 0 0 8px {dot_color}00; transform: scale(1.15); }}
+            }}
+            @keyframes outlook-fade-in {{
+                from {{ opacity: 0; transform: translateY(6px); }}
+                to   {{ opacity: 1; transform: translateY(0); }}
+            }}
+            </style>
+            <div class="metric-card {card_class}">
                 <div class="metric-label">Market Outlook</div>
-                <div style="font-family:'Barlow Condensed',sans-serif; font-size:2rem; font-weight:700; line-height:1; margin-top:0.5rem;">
-                    {action}
+                <div style="display:flex; align-items:center; gap:10px; margin-top:0.6rem; animation: outlook-fade-in 0.6s ease;">
+                    <div style="
+                        width: 12px; height: 12px; border-radius: 50%;
+                        background: {dot_color};
+                        flex-shrink: 0;
+                        animation: outlook-pulse 2s infinite;
+                    "></div>
+                    <div style="font-family:'Barlow Condensed',sans-serif; font-size:1.8rem; font-weight:700; line-height:1; color:{dot_color};">
+                        {action_text}
+                    </div>
                 </div>
-    </div>""", unsafe_allow_html=True)
+                <div style="font-family:'Space Mono',monospace; font-size:0.6rem; opacity:0.4; margin-top:0.5rem; letter-spacing:0.08em;">
+                    {action_sub}
+                </div>
+            </div>""", unsafe_allow_html=True)
 
         st.markdown("<div style='height:1.4rem'></div>", unsafe_allow_html=True)
         st.markdown('<div class="section-label">PRICE FORECAST · 15-MIN INTERVALS · EUROPE/BERLIN</div>', unsafe_allow_html=True)
