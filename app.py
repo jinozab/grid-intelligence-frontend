@@ -287,20 +287,127 @@ ICON_SPIKE = """<svg class="metric-icon" viewBox="0 0 24 24" fill="none" stroke=
   <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>"""
 
 now_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
-st.markdown(f"""
-<div class="gi-header">
+import streamlit.components.v1 as components
+
+components.html(f"""
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Barlow+Condensed:wght@300;400;600;700;900&display=swap');
+  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+  body {{ background: transparent; }}
+
+  .gi-header-video {{
+    position: relative;
+    width: 100%;
+    height: 220px;
+    overflow: hidden;
+    border-bottom: 2px solid rgba(0,196,154,0.3);
+    margin-bottom: 1.5rem;
+    border-radius: 8px;
+  }}
+  video {{
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.35;
+    z-index: 0;
+  }}
+  .overlay {{
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to right, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0.1) 100%);
+    z-index: 1;
+  }}
+  .content {{
+    position: relative;
+    z-index: 2;
+    padding: 1.8rem 2rem 1.4rem 2rem;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }}
+  .gi-title {{
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 2rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #fff;
+    line-height: 1;
+    margin: 0;
+  }}
+  .gi-title span {{ color: #00C49A; }}
+  .gi-subtitle {{
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin-top: 0.4rem;
+  }}
+  .gi-badges {{ margin-top: 1rem; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }}
+  .gi-badge {{
+    display: inline-block;
+    background: rgba(0,196,154,0.12);
+    border: 1px solid rgba(0,196,154,0.35);
+    color: #00C49A;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.58rem;
+    letter-spacing: 0.1em;
+    padding: 3px 10px;
+    border-radius: 3px;
+    text-transform: uppercase;
+  }}
+  .gi-badge-red {{
+    background: rgba(255,100,80,0.12);
+    border-color: rgba(255,100,80,0.35);
+    color: #FF8070;
+  }}
+  .status-live {{
+    display: inline-block;
+    width: 7px; height: 7px;
+    background: #00C49A;
+    border-radius: 50%;
+    margin-right: 5px;
+    animation: pulse 2s infinite;
+  }}
+  .live-text {{
+    font-family: 'Space Mono', monospace;
+    font-size: 0.58rem;
+    color: rgba(255,255,255,0.25);
+    margin-left: 4px;
+  }}
+  @keyframes pulse {{ 0%, 100% {{ opacity: 1; }} 50% {{ opacity: 0.2; }} }}
+</style>
+</head>
+<body>
+<div class="gi-header-video">
+  <video autoplay loop muted playsinline id="bg-video">
+    <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260328_105406_16f4600d-7a92-4292-b96e-b19156c7830a.mp4" type="video/mp4">
+  </video>
+  <script>
+    document.getElementById('bg-video').playbackRate = 0.5;
+  </script>
+  <div class="overlay"></div>
+  <div class="content">
     <p class="gi-title">⚡ Grid<span>Intelligence</span></p>
     <p class="gi-subtitle">Day-Ahead Electricity Price Forecasting · DE-LU Bidding Zone</p>
-    <div style="margin-top:1rem;">
-        <span class="gi-badge">Multi-Regime XGBoost</span>
-        <span class="gi-badge">72h · 15min Resolution</span>
-        <span class="gi-badge gi-badge-red">ENTSO-E · Open-Meteo · TTF</span>
-        <span style="font-family:'Space Mono',monospace;font-size:1.0rem;color:rgba(255,255,255,0.25);margin-left:10px;">
-            <span class="status-live"></span>LIVE · {now_str}
-        </span>
+    <div class="gi-badges">
+      <span class="gi-badge">Multi-Regime XGBoost</span>
+      <span class="gi-badge">72h · 15min Resolution</span>
+      <span class="gi-badge gi-badge-red">ENTSO-E · Open-Meteo · TTF</span>
+      <span class="live-text"><span class="status-live"></span>LIVE · {now_str}</span>
     </div>
+  </div>
 </div>
-""", unsafe_allow_html=True)
+</body>
+</html>
+""", height=240)
 
 # ── Session state ──────────────────────────────────────────────────────────────
 for key, val in [
