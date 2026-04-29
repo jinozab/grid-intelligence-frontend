@@ -388,7 +388,8 @@ components.html(f"""
 <body>
 <div class="gi-header-video">
   <video autoplay loop muted playsinline id="bg-video">
-    <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260328_105406_16f4600d-7a92-4292-b96e-b19156c7830a.mp4" type="video/mp4">
+
+    <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260315_073750_51473149-4350-4920-ae24-c8214286f323.mp4" type="video/mp4">
   </video>
   <script>
     document.getElementById('bg-video').playbackRate = 0.5;
