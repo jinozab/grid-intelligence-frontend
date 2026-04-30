@@ -306,6 +306,28 @@ for key, val in [
     if key not in st.session_state:
         st.session_state[key] = val
 
+
+# ── Cache functions ────────────────────────────────────────────────────────────
+@st.cache_data(ttl=900)
+def fetch_predictions():
+    r = requests.get(BASE_URI + '/predict', timeout=60)
+    return r.json()
+
+@st.cache_data(ttl=900)
+def fetch_explain():
+    r = requests.get(BASE_URI + '/explain', timeout=60)
+    return r.json()
+
+@st.cache_data(ttl=900)
+def fetch_backtest(days):
+    r = requests.get(BASE_URI + f'/backtest?days={days}', timeout=60)
+    return r.json()
+
+@st.cache_data(ttl=900)
+def fetch_energy_mix():
+    r = requests.get(BASE_URI + '/energy-mix?days=7', timeout=60)
+    return r.json()
+
 # ── Controls ──────────────────────────────────────────────────────────────────
 col_view, col_days, _ = st.columns([2, 2, 6])
 with col_view:
@@ -313,46 +335,34 @@ with col_view:
 with col_days:
     if view == "Backtest":
         days = st.selectbox("BACKTEST WINDOW", options=[1, 3, 7, 14], index=3)
-        if days != st.session_state.backtest_days:
+        if days != st.session_state.backtest_days:   # ← adentro del if
             st.session_state.backtest_days = days
-            st.session_state.backtest_data = None
+
+
 
 # ── Fetch ──────────────────────────────────────────────────────────────────────
-if view == "Predict next 72 hours" and st.session_state.prediction_data is None:
-    with st.spinner("Fetching forecast..."):
+if view == "Predict next 72 hours":
+    with st.spinner("⚡ Loading forecast..."):
         try:
-            r = requests.get(BASE_URI + '/predict', timeout=60)
-            if r.status_code == 200:
-                st.session_state.prediction_data = r.json()
+            st.session_state.prediction_data = fetch_predictions()
         except Exception as e:
             st.error(f"API connection failed: {e}")
-
-if view == "Predict next 72 hours" and st.session_state.explain_data is None:
     with st.spinner("Computing SHAP explanations..."):
         try:
-            r = requests.get(BASE_URI + '/explain', timeout=60)
-            if r.status_code == 200:
-                st.session_state.explain_data = r.json()
+            st.session_state.explain_data = fetch_explain()
         except Exception as e:
             st.warning(f"SHAP explanation unavailable: {e}")
 
-if view == "Backtest" and st.session_state.backtest_data is None:
-    with st.spinner("Loading backtest..."):
-        try:
-            r = requests.get(BASE_URI + f'/backtest?days={st.session_state.backtest_days}', timeout=60)
-            if r.status_code == 200:
-                st.session_state.backtest_data = r.json()
-        except Exception as e:
-            st.error(f"API connection failed: {e}")
-
-if view == "Energy Mix" and st.session_state.energy_mix_data is None:
-    with st.spinner("Loading energy mix..."):
-        try:
-            r = requests.get(BASE_URI + '/energy-mix?days=7', timeout=60)
-            if r.status_code == 200:
-                st.session_state.energy_mix_data = r.json()
-        except Exception as e:
-            st.error(f"API connection failed: {e}")
+# ── Prefetch all views on first load ──────────────────────────────────────────
+if "prefetched" not in st.session_state:
+    try:
+        st.session_state.prediction_data = fetch_predictions()
+        st.session_state.explain_data = fetch_explain()
+        st.session_state.backtest_data = fetch_backtest(14)  # ← siempre 14 días
+        st.session_state.energy_mix_data = fetch_energy_mix()
+    except Exception:
+        pass
+    st.session_state.prefetched = True
 
 # ── PREDICT VIEW ───────────────────────────────────────────────────────────────
 if view == "Predict next 72 hours":
@@ -589,7 +599,12 @@ elif view == "Backtest":
         timestamps = pd.to_datetime(data["timestamps"], utc=True).tz_convert('Europe/Berlin')
         df_bt = pd.DataFrame({"timestamp": timestamps, "actual": data["actual"], "predicted": data["predicted"]})
 
+        # Filtrar localmente según días seleccionados — sin llamar al backend
+        cutoff = df_bt["timestamp"].max() - pd.Timedelta(days=st.session_state.backtest_days)
+        df_bt = df_bt[df_bt["timestamp"] >= cutoff]
+
         st.markdown('<div class="section-label">ACTUAL VS PREDICTED · EUROPE/BERLIN</div>', unsafe_allow_html=True)
+
         fig_bt = go.Figure()
         fig_bt.add_trace(go.Scatter(x=df_bt["timestamp"], y=df_bt["actual"],
             mode="lines", name="Actual", line=dict(color="#378ADD", width=2),
