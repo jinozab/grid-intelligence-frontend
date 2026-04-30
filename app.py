@@ -53,7 +53,7 @@ html, body, [class*="css"] {{ font-family: 'Barlow Condensed', sans-serif; }}
     background-repeat: no-repeat;
     background-position: bottom right;
     opacity: 0.10;
-    filter: hue-rotate(80deg) saturate(0.5);
+    filter: hue-rotate(80deg) saturate(0.002);
     pointer-events: none;
     z-index: 0;
 }}
@@ -69,7 +69,7 @@ html, body, [class*="css"] {{ font-family: 'Barlow Condensed', sans-serif; }}
     background-repeat: no-repeat;
     background-position: top right;
     opacity: 0.02;
-    filter: hue-rotate(80deg) saturate(0.8);
+    filter: hue-rotate(80deg) saturate(0.002);
     pointer-events: none;
     z-index: 0;
     transform: scaleX(-1);
@@ -232,7 +232,7 @@ HERO_HTML = """<!DOCTYPE html>
 <html><head><style>
 @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Barlow+Condensed:wght@300;400;600;700;900&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}body{background:transparent}
-.gi-hero{position:relative;width:100%;height:220px;overflow:hidden;border-bottom:2px solid rgba(0,196,154,0.3);margin-bottom:1.5rem;border-radius:8px;background:radial-gradient(ellipse 70% 90% at 30% 50%,rgba(0,80,60,0.35) 0%,transparent 60%),radial-gradient(ellipse 60% 90% at 90% 80%,rgba(80,30,80,0.25) 0%,transparent 55%),linear-gradient(180deg,#0a0a0a 0%,#14141c 100%)}
+.gi-hero{position:relative;width:100%;height:220px;overflow:hidden;border-bottom:2px solid rgba(0,196,154,0.3);margin-bottom:1.5rem;border-radius:8px;background:linear-gradient(180deg,#050505 0%,#0a0a0f 100%),rgba(0,80,60,0.35) 0%,transparent 60%),radial-gradient(ellipse 60% 90% at 90% 80%,rgba(80,30,80,0.25) 0%,transparent 55%),linear-gradient(180deg,#0a0a0a 0%,#14141c 100%)}
 .gi-hero__grid{position:absolute;inset:-10% -10% -30% -10%;background-image:linear-gradient(116.57deg,transparent 49.6%,rgba(0,196,154,0.07) 49.8%,rgba(0,196,154,0.07) 50.2%,transparent 50.4%),linear-gradient(63.43deg,transparent 49.6%,rgba(0,196,154,0.07) 49.8%,rgba(0,196,154,0.07) 50.2%,transparent 50.4%);background-size:50px 25px,50px 25px;transform:perspective(800px) rotateX(58deg);transform-origin:50% 80%;mask-image:linear-gradient(180deg,transparent 0%,black 30%,black 80%,transparent 100%);animation:gi-drift 30s linear infinite}
 @keyframes gi-drift{0%{background-position:0 0,0 0}100%{background-position:50px 25px,-50px 25px}}
 .gi-hero__art{position:absolute;right:24px;top:50%;width:240px;transform:translateY(-50%);opacity:0.5;filter:drop-shadow(0 8px 24px rgba(0,196,154,0.35));animation:gi-breathe 6s ease-in-out infinite;pointer-events:none;z-index:1}
