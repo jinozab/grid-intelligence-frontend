@@ -53,7 +53,7 @@ html, body, [class*="css"] {{ font-family: 'Barlow Condensed', sans-serif; }}
     background-repeat: no-repeat;
     background-position: bottom right;
     opacity: 0.10;
-    filter: hue-rotate(80deg) saturate(1.5);
+    filter: hue-rotate(80deg) saturate(0.5);
     pointer-events: none;
     z-index: 0;
 }}
