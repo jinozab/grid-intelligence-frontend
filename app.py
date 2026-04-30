@@ -468,6 +468,9 @@ if view == "Energy Mix" and st.session_state.energy_mix_data is None:
 
 # ── PREDICT VIEW ───────────────────────────────────────────────────────────────
 if view == "Predict next 72 hours":
+    from streamlit_autorefresh import st_autorefresh
+    st_autorefresh(interval=60_000, key="now_line_refresh")
+
     data = st.session_state.prediction_data
     if data:
         predictions = data["predictions_15min"]
@@ -601,8 +604,22 @@ if view == "Predict next 72 hours":
                 hovertemplate="<b>%{x|%a %d %b %H:%M}</b><br><b>%{y:.1f} €/MWh</b><extra></extra>"))
             y_min = min(min(predictions) - 20, -20)
             y_max = max(max(predictions) + 10, 120)
+            # Current time line
+            now_berlin = pd.Timestamp.now(tz='Europe/Berlin')
+            fig.add_vline(
+                x=now_berlin.timestamp() * 1000,
+                line_color="rgba(56, 138, 221, 0.9)",
+                line_width=2,
+                line_dash="solid",
+                annotation_text="NOW",
+                annotation_position="top",
+                annotation_font_color="rgba(56, 138, 221, 0.9)",
+                annotation_font_size=9,
+            )
             fig.update_layout(
                 template="plotly_dark", height=400,
+
+
                 paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                 font=dict(family="Space Mono", size=13, color="rgba(255,255,255,0.4)"),
                 xaxis=dict(gridcolor="rgba(255,255,255,0.06)", linecolor="rgba(255,255,255,0.1)",

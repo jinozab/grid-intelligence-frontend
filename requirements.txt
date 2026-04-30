@@ -14,3 +14,4 @@ requests
 # Data science
 pandas
 plotly
+streamlit-autorefresh
